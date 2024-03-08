@@ -54,11 +54,20 @@
                   :value="item.course_id">
               </el-option>
             </el-select>
-        </div>
-        <div>
-          <el-button type="primary" @click.prevent="addQuestion()" :icon="DocumentAdd">添加题目</el-button>
-          <el-button :icon="FolderOpened">导入题目</el-button>
-        </div>
+          </div>
+          <div style="display: flex;flex-flow: row">
+            <el-button type="primary" @click.prevent="addQuestion()" :icon="DocumentAdd" style="margin-right: 15px">添加题目</el-button>
+            <el-upload
+                ref="upload"
+                action="http://127.0.0.1:5000/teacher/upload_question"
+                accept=".xls, .xlsx"
+                :on-success="onSuccess"
+                :before-upload="beforeUpload"
+                :limit="1"
+                :show-file-list="false">
+              <el-button :icon="FolderOpened">导入题目</el-button>
+            </el-upload>
+          </div>
         </template>
         <div>
           <span>题型</span>
@@ -159,7 +168,7 @@ const catalogs=reactive({
   menuData:[],
   value:''
 })
-
+const upload =ref()
 const router = useRouter()
 const course = reactive({
   courseOption:[],
@@ -365,7 +374,23 @@ function deleteCatalog(e) {
     }
   })
 }
+function beforeUpload(file) {
+  const fileSuffix = file.name.substring(file.name.lastIndexOf(".") + 1);
+  const whiteList = ["xls", "xlsx"];
+  if (whiteList.indexOf(fileSuffix) === -1) {
+    ElMessage.error('上传文件只能是 xls、xlsx格式')
+    return false
+  }
+}
 
+function onSuccess(response) {
+  if (response.code===200){
+    ElMessage.success('上传成功')
+    upload.value.clearFiles()
+    getMenuList(course.value)
+    getQuestion(course.value)
+  }
+}
 
 </script>
 
