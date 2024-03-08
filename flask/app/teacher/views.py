@@ -1,6 +1,8 @@
+import os
 import random
 import datetime
 
+import pandas as pd
 from flask import request, jsonify
 
 from . import teacher
@@ -885,5 +887,51 @@ def delete_exam():
     data_id = request.json.get('data_id')
     exam_data = Exam.query.filter_by(id=data_id).first()
     db.session.delete(exam_data)
+    db.session.commit()
+    return jsonify({'code': 200})
+
+
+@teacher.route('/upload_question', methods=['POST'])
+def upload_question():
+    file = request.files.get('file')
+    folder = os.path.abspath('..') + r'\vue\public\assets'
+
+    file_path = os.path.join(folder + r'\files', file.filename)
+    file.save(file_path)
+    df = pd.read_excel(file_path)
+    data_classes = {
+        '单选': Single,
+        '多选': Multiple,
+        '判断': Judgment,
+        '填空': Blank,
+        '问答': Answer
+    }
+    for item in df.values:
+        item = item.astype(str)
+        item = ['' if x == 'nan' else x for x in item]
+        question_type = item[0]
+        data_class = data_classes[question_type]
+
+        if data_class == Single or data_class == Multiple:
+            # 创建数据对象
+            data_object = data_class(question=item[1],
+                                     optionsA=item[7],
+                                     optionsB=item[8],
+                                     optionsC=item[9],
+                                     optionsD=item[10],
+                                     answer=item[2],
+                                     analysis=item[3],
+                                     degree=item[4],
+                                     course_id=item[5],
+                                     knowledge_point=item[6])
+        else:
+            data_object = data_class(question=item[1],
+                                     answer=item[2],
+                                     analysis=item[3],
+                                     degree=item[4],
+                                     course_id=item[5],
+                                     knowledge_point=item[6])
+        db.session.add(data_object)
+    # 提交数据库会话
     db.session.commit()
     return jsonify({'code': 200})
